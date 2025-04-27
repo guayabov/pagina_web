@@ -7,7 +7,7 @@ exports.login = async (req, res) => {
     try {
         // Llama al servicio de autenticación para validar al usuario y obtener un token
         const token = await authService.loginUser(email, password);
-
+        console.log(token)
         // Responde con un mensaje de éxito y el token generado
         res.status(200).json({ message: 'Inicio de sesión exitoso', token });
 

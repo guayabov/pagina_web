@@ -37,6 +37,7 @@ const User = sequelize.define('usuarios', {
         }
     }, 
     // Campo 'administrador_id', hace referencia a otro usuario administrador
+    
     administrador_id: {
         type: DataTypes.INTEGER,
         allowNull: false,  // No puede ser nulo

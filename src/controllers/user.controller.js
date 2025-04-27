@@ -1,69 +1,100 @@
-// Importa el servicio de usuarios que maneja la lógica de negocio
+// Importar servicio de usuarios
 const userService = require('../services/user.service');
+const User = require('../models/user.model');
+const bcrypt = require('bcrypt');
 
-// Controlador para crear un nuevo usuario
+
 exports.createUser = async (req, res) => {
-    try {
-        // Extrae los datos del usuario desde el cuerpo de la solicitud
-        const { nombre, email, password, rol_id, administrador_id } = req.body;
-
-        // Llama al servicio para crear el usuario con los datos proporcionados
-        const newUser = await userService.createUser(nombre, email, password, rol_id, administrador_id);
-
-        // Responde con un estado 201 indicando que el usuario fue creado
-        res.status(201).json({ message: 'Usuario creado con éxito', user: newUser });
+    try { 
+        const { nombre, email, password, rol_id} = req.body; // Se extrae los datos de la solicitud para el nuevo usuario
+        console.log(req.body)
+        const newUser = await userService.createUser(nombre, email, password, rol_id);
+        res.status(201).json({ message: 'Usuario creado con éxito', user: newUser }); // 281 para la creacion de nuevos ususarios
     } catch (err) {
-        // En caso de error, responde con un estado 500 error interno del servidor
-        res.status(500).json({ message: err.message });
+        console.log(err);
+        res.status(500).json({ message: err.message});
+    }};
+// Controlador para obtener todos los usuarios asociados a un administrador 
+// req que contiene los datos de la solicitud  y res que se utiliza para enviar las solicitudes
+exports.getAllUsersByAdministradorId = async (req, res) => {
+    try {
+        const admin_from_token = req.user.id; // Se extrae el id del administrador del token de autenticación
+        const { email } = req.query; // Se extrae el email de la consulta para utilizarlo como tipo filtro y es opcional
+        const users = await userService.getAllUsersByAdministradorId(admin_from_token, email);
+        res.status(200).json({message: 'Usuarios consultados con éxito', users });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los usuarios', error });
     }
 };
 
-// Controlador para actualizar un usuario
-exports.updateUser = async (req, res) => {
+//  Controlador para obtener a los usuarios asociados a un rol
+exports.getAllUsersByRolId = async (req, res) => {
     try {
-        // Extrae el ID del usuario desde los parámetros de la solicitud
-        const { id } = req.params;
+        const users = await userService.getAllUsersByRolId(req.params.id);
+        res.status(200).json({ message: 'Usuarios consultados con éxito', users });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los usuarios', error });
+    }
+};
 
-        // Extrae los datos actualizados desde el cuerpo de la solicitud
-        const { nombre, email, password, rol_id, administrador_id } = req.body;
 
-        // Llama al servicio para actualizar el usuario
-        const updatedUser = await userService.updateUser(id, nombre, email, password, rol_id, administrador_id);
 
-        // Verifica si el usuario fue encontrado y actualizado
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+
+// Controlador corregido para obtener un usuario por ID
+exports.getUserById = async (req, res) => {
+    try {
+        const user = await userService.getUserById(req.params.id);
+        
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Usuario no encontrado' 
+            });
         }
 
-        // Responde con un estado 200 indicando éxito en la actualización
-        res.status(200).json({ message: 'Usuario actualizado con éxito', user: updatedUser });
+        res.status(200).json({
+            success: true,
+            message: 'Usuario encontrado',
+            data: user
+        });
+
+    } catch (error) {
+        console.error('Error en getUserById:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al buscar el usuario',
+            error: error.message // Solo envía el mensaje de error, no todo el objeto
+        });
+    }
+};
+
+
+
+
+// Controlador para actualizar un usuario
+exports.updateUser = async (req, res) => {
+    const { id } = req.params; // extrae el id de la URL enviado como parametro
+    const { nombre, email, rol_id } = req.body; // se extrae los datos actualizados 
+    const admin_from_token = req.user.id;
+    try {
+        const user = await userService.updateUser(id, nombre, email, rol_id, admin_from_token);
+        res.status(200).json({ message: 'El susuario a actualizado con éxito', user });
     } catch (err) {
-        // En caso de error, responde con un estado 500
+        console.log(err);
         res.status(500).json({ message: err.message });
     }
 };
 
 // Controlador para eliminar un usuario
 exports.deleteUser = async (req, res) => {
+    const { id } = req.params;
+    const admin_from_token = req.user.id;
     try {
-        // Extrae el ID del usuario desde los parámetros de la solicitud
-        const { id } = req.params;
-
-        // Llama al servicio para eliminar el usuario
-        const deleted = await userService.deleteUser(id);
-
-        // Verifica si el usuario fue encontrado y eliminado
-        if (!deleted) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
-        // Responde con un estado 200 indicando éxito en la eliminación
-        res.status(200).json({ message: 'Usuario eliminado con éxito' });
+        const result = await userService.deleteUser(id, admin_from_token);
+        res.status(200).json(result);
     } catch (err) {
-        // En caso de error, responde con un estado 500
         res.status(500).json({ message: err.message });
     }
 };
 
 
-//Hacer edpoint de proyectos 

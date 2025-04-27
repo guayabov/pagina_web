@@ -1,7 +1,7 @@
 // Importamos los modelos necesarios
 const User = require('./user.model');
-const Proyect = require('./proyect.model');
-const UserProyect = require('./userproyect.model');
+const Proyect = require('./project.model');
+const UserProyect = require('./userProject.model');
 
 // Definimos la relación muchos a muchos entre usuarios y proyectos
 // Se usa la tabla intermedia UserProyect para gestionar la relación

@@ -1,48 +1,47 @@
-const jwt = require('jsonwebtoken'); // Importamos la librería jsonwebtoken para generar tokens JWT
-const bcrypt = require('bcryptjs'); // Importamos bcryptjs para encriptar y comparar contraseñas
-const dotenv = require('dotenv'); // Importamos dotenv para manejar variables de entorno
+const jwt = require('jsonwebtoken'); //Importar libreria de jsonwebtoken
+const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv'); //Importar la variable de entorno
+// importamos el modelo user y el modelo rol permisos
+const User = require('../models/user.model');
+const RolePermission = require('../models/rolePermission.model');
 
-// Importamos los modelos necesarios
-const User = require('../models/user.model'); // Modelo de usuario
-const RolePermission = require('../models/rolePermission.model'); // Modelo de permisos por rol
+dotenv.config();
 
-dotenv.config(); // Cargamos las variables de entorno
-
-const SECRET_KEY = process.env.JWT_SECRET; // Obtenemos la clave secreta para generar el token
-
-// Exportamos el servicio de autenticación que recibe email y contraseña
+const SECRET_KEY = process.env.JWT_SECRET; //Obtener la clave secreta desde las claves de entorno 
+// exportamos un servicio que va recibir una email y un password
 exports.loginUser = async (email, password) => {
-    try {
-        // Verifica que el usuario existe en la base de datos
-        const user = await User.findOne({ where: { email } }); // Busca el usuario por email
+    try{
+        // verifica que el usuario existe
+        const user = await User.findOne({ where:{email: email} }); // el findOne es un modelo que se utiliza con sequelize
+        console.log(user)
         if (!user) {
-            throw new Error('Usuario no encontrado'); // Lanza un error si el usuario no existe
+            throw new Error('Usuario no encontrado');
         }
 
-        // Verifica si la contraseña ingresada es correcta
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) { // Se cambió la condición incorrecta
-            throw new Error('Contraseña incorrecta'); // Lanza un error si la contraseña no es válida
+        //verificar si la contraseña es correcta 
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const isPasswordValid = await bcrypt.compare(hashedPassword, user.password)
+        if (isPasswordValid) {
+            throw new Error('Contraseña incorrecta');
         }
 
-        // Consultar permisos del rol del usuario
-        const rolePermissions = await RolePermission.findAll({
-            where: { rol_id: user.rol_id }, // Busca los permisos según el rol del usuario
-            attributes: ['permiso_id'] // Solo obtiene los IDs de los permisos
+        // Consultar permisos de rol
+        const rolePermission = await RolePermission.findAll({
+            where: { rol_id: user.rol_id },
+            attributes: ['permiso_id']
         });
 
-        // Extrae los IDs de los permisos en un array
-        const permisos = rolePermissions.map(rp => rp.permiso_id);
+        const permisos = rolePermission.map(rp => rp.permiso_id);
 
-        // Genera un token con los datos del usuario y sus permisos
+        // Generar un token JWT
         const token = jwt.sign(
-            { id: user.id, nombre: user.nombre, email: user.email, rol_id: user.rol_id, permisos }, // Payload del token
-            SECRET_KEY, // Clave secreta
-            { expiresIn: '1h' } // Expiración del token en 1 hora
+            { id: user.id, nombre: user.nombre, email: user.email, rol_id: user.rol_id, permisos },
+            SECRET_KEY,
+                {expiresIn: '1h'}
         );
 
-        return token; // Retorna el token generado
+        return token;
     } catch (error) {
-        throw new Error(error.message || 'Error al iniciar sesión'); // Manejo de errores
+        throw new Error(error.message || 'Error al iniciar sesión');
     }
 };
