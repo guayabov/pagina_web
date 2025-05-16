@@ -1,28 +1,15 @@
-// Importamos los modelos necesarios
+// Importamos los modelos de usuario, proyecto y el de usarios-proyectos
 const User = require('./user.model');
-const Proyect = require('./project.model');
-const UserProyect = require('./userProject.model');
+const Project = require('./project.model');
+const UserProject = require('./userProject.model');
 
-// Definimos la relación muchos a muchos entre usuarios y proyectos
-// Se usa la tabla intermedia UserProyect para gestionar la relación
-User.belongsToMany(Proyect, { 
-    through: UserProyect,          // Especificamos la tabla intermedia
-    foreignKey: 'usuario_id',      // Clave foránea en la tabla intermedia
-    as: 'proyectos'                // Alias para referirse a los proyectos de un usuario
-});
+// Definimos las relaciones 
+// Relaciones muchos a muchos "belongsToMany", entre usuarios y proyectos
+User.belongsToMany(Project, { through: UserProject, foreignkey: 'usuario_id', as: 'proyectos'});
+Project.belongsToMany(User, { through: UserProject, foreignkey: 'proyecto_id', as: 'usuarios'});
 
-Proyect.belongsToMany(User, { 
-    through: UserProyect,          // Especificamos la tabla intermedia
-    foreignKey: 'proyecto_id',     // Clave foránea en la tabla intermedia
-    as: 'usuarios'                 // Alias para referirse a los usuarios de un proyecto
-});
+// Relación de un proyecto con su administrador "belongsTo"
+Project.belongsTo(User, { foreignkey: 'administrador_id', as: 'administrador'});
 
-// Definimos la relación entre proyectos y administradores
-// Un proyecto puede tener un administrador, que es un usuario
-Proyect.belongsToMany(User, { 
-    foreignKey: 'administrador_id', // Clave foránea que representa al administrador del proyecto
-    as: 'administrador'             // Alias para acceder al administrador del proyecto
-});
-
-// Exportamos los modelos para que puedan ser usados en otras partes del código
-module.exports = { User, Proyect, UserProyect };
+// Se exporta el modelo con sus relaciones definidas
+module.exports = { User, Project, UserProject };

@@ -1,7 +1,6 @@
 // Importamos Express, una biblioteca para construir aplicaciones web en Node.js.
 const express = require('express');
 
-
 // Creamos un enrutador que nos permitirá manejar rutas específicas de forma modular.
 const router = express.Router();
 
