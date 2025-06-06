@@ -1,27 +1,25 @@
-const sequelize = require('./confing/db'); // Importamos la configuración de la base de datos (el objeto sequelize).
-const app = require('./app'); // Importamos la aplicación de Express ya configurada.
-const dotenv = require('dotenv'); // Importamos dotenv para poder usar las variables de entorno (como el puerto o la clave secreta).
-require('./models/associations'); // Importamos las asociaciones entre los modelos para que estén registradas.
+const sequelize = require('./config/database');
+const app = require('./app');
+const dotenv = require('dotenv');
+require('./models/associations');
 
-dotenv.config(); // Cargamos las variables de entorno del archivo .env.
+dotenv.config();
 
-const PORT = process.env.PORT || 3000; // Definimos el puerto en el que va a correr el servidor, usando el del .env o el 3000 si no existe.
+const PORT = process.env.PORT || 5432;
 
-// Nos conectamos a la base de datos usando sequelize.
-sequalize.authenticate()
+sequelize.authenticate()
     .then(() => {
-        console.log('conectado a postgreSQL con sequalize'); // Si la conexión es exitosa, mostramos este mensaje.
+        console.log('Conectado a PostgreSQL con Sequelize');
         app.listen(PORT, () => {
-            console.log('Servidor corriendo en http://localhost:$(PORT)'); // Cuando el servidor esté levantado, mostramos esta URL.
+            console.log(`Servidor corriendo en http://localhost:${PORT}`);
         });
     })
-    .catch(err => console.error('Error conectado a la base de datos:', err)); // Si hay un error al conectar la base de datos, lo mostramos en consola.
+    .catch(err => console.error('Error conectando a la base de datos:', err));
 
-// Sincronizamos los modelos con la base de datos.
-sequelize.sync({ force: false }) // No forzamos la sincronización (no borra las tablas existentes).
+sequelize.sync({ force: false })
     .then(() => {
-        console.log('Base de datos sincronizada'); // Si todo sale bien, mostramos este mensaje.
+        console.log('Base de datos sincronizada');
     })
     .catch(err => {
-        console.error('Error al sincronizar la base de datos', err); // Si hay error al sincronizar, lo mostramos en consola.
+        console.error('Error al sincronizar la base de datos:', err);
     });

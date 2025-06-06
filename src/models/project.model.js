@@ -1,40 +1,72 @@
-const { DataTypes } = require('sequelize'); // Importamos tipos de datos de Sequelize
-const sequelize = require('../config/database'); // Importamos la instancia de conexión a la base de datos
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+// Definimos el modelo 'Project' que representa la tabla 'proyectos'
 
-// Definimos el modelo "Proyect" (Proyectos)
-const Proyect = sequelize.define('proyectos', { // Nombre del modelo (en la BD será 'proyectos')
+const Project = sequelize.define('proyectos', {
     id: { 
         type: DataTypes.INTEGER, 
-        primaryKey: true, // Llave primaria
-        autoIncrement: true // Se autoincrementa
-    },
+        primaryKey: true, 
+        autoIncrement: true  // El ID se genera automáticamente
+    },  
     nombre: { 
         type: DataTypes.STRING, 
-        allowNull: false // No puede ser nulo
-    },
+        allowNull: false, // No se permite que sea nulo
+        validate: {
+            notNull: { msg: 'El nombre del proyecto es requerido' },
+            notEmpty: { msg: 'El nombre no puede estar vacío' },
+            len: {
+                args: [3, 100], // Longitud entre 3 y 100 caracteres
+                msg: 'El nombre debe tener entre 3 y 100 caracteres'
+            }
+        }
+    }, 
     descripcion: { 
         type: DataTypes.STRING, 
-        allowNull: false 
+        allowNull: false,
+        validate: {
+            notNull: { msg: 'La descripción es requerida' },
+            notEmpty: { msg: 'La descripción no puede estar vacía' },
+            len: {
+                args: [10, 500],
+                msg: 'La descripción debe tener entre 10 y 500 caracteres'
+            }
+        }
     }, 
     fecha_creacion: { 
         type: DataTypes.DATE, 
         allowNull: false, 
-        defaultValue: DataTypes.NOW // Por defecto, la fecha de creación es el momento actual
+        defaultValue: DataTypes.NOW // Fecha de creación automática (actual)
+    },
+    administrador_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,  // Cada proyecto debe tener un administrador
+        references: { 
+            model: 'usuarios', 
+            key: 'id' 
+        },
+        validate: {
+            notNull: { msg: 'El administrador es requerido' },
+            isInt: { msg: 'El ID del administrador debe ser un número entero' }
+        }
     }
-    // El campo administrador_id ha sido eliminado
 }, {
-    timestamps: false, // No usar campos automáticos createdAt y updatedAt de Sequelize
-    tableName: 'proyectos', // Nombre explícito de la tabla
-
+    timestamps: false,
+    tableName: 'proyectos',
     hooks: {
-        afterCreate: (proyect, options) => { // Hook que se ejecuta después de crear un proyecto
-            if (proyect.fecha_creacion) {
-                proyect.fecha_creacion.setHours(proyect.fecha_creacion.getHours() - 5); 
-                // Resta 5 horas a la fecha de creación (posiblemente por ajuste de zona horaria Colombia GMT-5)
+        beforeCreate: (project) => {
+            if (project.nombre) {
+                project.nombre = project.nombre.trim();
+            }
+            if (project.descripcion) {
+                project.descripcion = project.descripcion.trim();
+            }
+        },
+        afterCreate: (project) => {
+            if (project.fecha_creacion) {
+                project.fecha_creacion.setHours(project.fecha_creacion.getHours() - 5);
             }
         }
     }
 });
 
-module.exports = Proyect; // Exportamos el modelo
-
+module.exports = Project;

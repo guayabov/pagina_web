@@ -2,24 +2,22 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// Habilitar estos modulos
+// Middlewares
 app.use(express.json());
 app.use(cors());
 
 // Importar rutas
-const userRoutes = require('./routes/user.routes');
-const authRoutes = require('./routes/auth.routes');
-const projectRoutes = require('./routes/project.routes');
+const userRoutes = require('./routers/user.routes');
+const authRoutes = require('./routers/auth.routes'); 
+const projectRoutes = require('./routers/project.routes'); // Renombrado
 
-// Habilitar esta rutas
-app.use('/api/v1', userRoutes);
-app.use('/api/v1', authRoutes);
+// Usar rutas con prefijo común
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', projectRoutes);
 
-// Al final de tu archivo app.js
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+// Middleware de errores
+const errorHandler = require('./middlewares/error.middleware');
+app.use(errorHandler); // debe ir al final
 
 module.exports = app;

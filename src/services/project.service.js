@@ -1,69 +1,83 @@
-const project = require('../models/project.model'); // (IMPORTACIÓN REPETIDA - no necesaria)
-const user = require('../models/user.model'); // (IMPORTACIÓN QUE NO USAS)
-const Project = require('../models/project.model'); // Importamos el modelo de proyectos
+const Project = require('../models/project.model');
+const User = require('../models/user.model');
 
-// Servicio para crear un proyecto
-exports.createProject = async (nombre, descripcion) => {
+// Crear un proyecto
+exports.createProject = async ({ nombre, descripcion, administrador_id, admin_from_token }) => {
     try {
-        // Crear el proyecto (sin administrador_id en esta función)
+        // Validar si el administrador_id corresponde al usuario autenticado
+        if (administrador_id !== admin_from_token) {
+            throw new Error('Acceso denegado, el proyecto debe ser creado por el administrador autenticado');
+        }
+
         const newProject = await Project.create({
             nombre,
             descripcion,
+            administrador_id
         });
 
-        return newProject; // Devolvemos el proyecto creado
+        return newProject;
     } catch (err) {
-        throw new Error(`Error al crear el proyecto: ${err.message}`); // Si falla, lanzamos un error
+        throw new Error(`Error al crear el proyecto: ${err.message}`);
     }
 };
 
-// Servicio para obtener todos los proyectos con sus administradores y usuarios asociados
+// Obtener todos los proyectos con sus relaciones
 exports.getAllProjects = async () => {
     try {
         const projects = await Project.findAll({
             include: [
                 {
-                    model: User, // Incluimos el modelo de Usuario
-                    as: 'administrador', // Relación como administrador
-                    attributes: ['id', 'nombre', 'email'] // Solo estos atributos
+                    model: User,
+                    as: 'administrador',
+                    attributes: ['id', 'nombre', 'email']
                 },
                 {
                     model: User,
-                    as: 'usuarios', // Relación como usuarios
+                    as: 'usuarios',
                     attributes: ['id', 'nombre', 'email'],
-                    through: { attributes: [] } // No queremos atributos extra de la tabla intermedia
+                    through: { attributes: [] }
                 }
             ]
         });
-        return projects; // Devolvemos los proyectos encontrados
+        return projects;
     } catch (err) {
         throw new Error(`Error al obtener los proyectos: ${err.message}`);
     }
 };
 
-// Servicio para obtener un proyecto por su ID
-exports.getProjectById = async (id) => {
+// Obtener un proyecto por ID
+exports.getProjectsByUserId = async (id) => {
     try {
-        const project = await Project.findByPk(id); // Buscamos el proyecto por ID
+        const project = await Project.findByPk(id, {
+            include: [
+                {
+                    model: User,
+                    as: 'usuarios',
+                    attributes: ['id', 'nombre', 'email'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
         if (!project) {
-            throw new Error('Proyecto no encontrado'); // Si no existe, lanzamos error
+            throw new Error('Proyecto no encontrado');
         }
-        return project; // Devolvemos el proyecto encontrado
+        return project;
     } catch (err) {
         throw new Error(`Error al obtener el proyecto: ${err.message}`);
     }
 };
 
-// Servicio para asignar usuarios a un proyecto
-exports.assingUsersToProject = async (data) => {
-    const project = await Project.findByPk(data.projectId); // Buscamos el proyecto
+// Asignar usuarios a un proyecto
+exports.assignUsersToProject = async ({ projectId, usersIds }) => {
+    const project = await Project.findByPk(projectId);
     if (!project) throw new Error('Proyecto no encontrado');
 
-    const users = await User.findAll({ where: { id: data.userIds }}); // Buscamos los usuarios
-    if (users.length !== data.userIds.length) throw new Error('Algunos usuarios no fueron encontrados');
+    const users = await User.findAll({ where: { id: usersIds } });
+    if (users.length !== usersIds.length) throw new Error('Algunos usuarios no fueron encontrados');
 
-    await project.addUsuarios(users); // Relacionamos usuarios al proyecto
-    return await project.findByPk(data.project, { // <- Aquí tienes un pequeño error: debería ser `data.projectId`
+    await project.addUsuarios(users);
+
+    return await Project.findByPk(projectId, {
         include: [
             {
                 model: User,
@@ -71,53 +85,43 @@ exports.assingUsersToProject = async (data) => {
                 attributes: ['id', 'nombre', 'email'],
                 through: { attributes: [] }
             }
-        ],
+        ]
     });
 };
 
-// Servicio para remover un usuario de un proyecto
-exports.removeUserFromProject = async (data) => {
-    const project = await Project.findByPk(data.projectId); // Buscamos el proyecto
-    if (!project) throw new Error('Proyecto no encontrado'); // Aquí el error en tu mensaje (decías "Usuario no encontrado")
+// Eliminar un usuario de un proyecto
+exports.removeUserFromProject = async ( data ) => {
+    const project = await Project.findByPk(projectId);
+    if (!project) throw new Error('Proyecto no encontrado');
 
-    const user = await User.findByPk(data.userId); // Buscamos el usuario
+    const user = await User.findByPk(userId);
     if (!user) throw new Error('Usuario no encontrado');
 
-    await project.removeUsuario(user); // Quitamos el usuario del proyecto
+    await project.removeUsuario(user);
 };
 
-// Servicio para actualizar un proyecto
+// Actualizar un proyecto
 exports.updateProject = async (id, nombre, descripcion, administrador_id) => {
     try {
-        const project = await Project.findByPk(id); // Buscamos el proyecto
-        if (!project) {
-            throw new Error('Proyecto no encontrado');
-        }
+        const project = await Project.findByPk(id);
+        if (!project) throw new Error('Proyecto no encontrado');
 
-        await project.update({ // Actualizamos los datos
-            nombre,
-            descripcion,
-            administrador_id,
-        });
-
-        return project; // Devolvemos el proyecto actualizado
+        await project.update({ nombre, descripcion, administrador_id });
+        return project;
     } catch (err) {
         throw new Error(`Error al actualizar el proyecto: ${err.message}`);
     }
 };
 
-// Servicio para eliminar un proyecto
+// Eliminar un proyecto
 exports.deleteProject = async (id) => {
     try {
-        const project = await Project.findByPk(id); // Buscamos el proyecto
-        if (!project) {
-            throw new Error('Proyecto no encontrado');
-        }
-        
-        await project.destroy(); // Eliminamos el proyecto
-        return { message: 'Proyecto eliminado con éxito' }; // Devolvemos confirmación
-    } catch (err) {
-        throw new Error(`Error al eliminar el proyecto: ${err.message}`);
+        const project = await Project.findByPk(id);
+        if (!project) { throw new Error('Proyecto no encontrado');} 
+
+        await project.destroy();
+        return { message: 'Proyecto eliminado exitosamente' };
+    } catch (error) {
+        throw new Error(error.message || 'Error al eliminar el proyecto');
     }
 };
-
