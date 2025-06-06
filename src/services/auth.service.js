@@ -1,31 +1,30 @@
-const jwt = require('jsonwebtoken'); //Importar libreria de jsonwebtoken
-const bcrypt = require('bcryptjs');
-const dotenv = require('dotenv'); //Importar la variable de entorno
-// importamos el modelo user y el modelo rol permisos
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs'); // Se instala con: npm install bcryptjs
+const dotenv = require('dotenv');
 const User = require('../models/user.model');
 const RolePermission = require('../models/rolePermission.model');
 
 dotenv.config();
 
-const SECRET_KEY = process.env.JWT_SECRET; //Obtener la clave secreta desde las claves de entorno 
-// exportamos un servicio que va recibir una email y un password
+// Llave secreta desde las variables de entorno
+const SECRET_KEY = process.env.JWT_SECRET;
+
+// Servicio
 exports.loginUser = async (email, password) => {
-    try{
-        // verifica que el usuario existe
-        const user = await User.findOne({ where:{email: email} }); // el findOne es un modelo que se utiliza con sequelize
-        console.log(user)
+    try {
+        // Verifica si el usuario existe
+        const user = await User.findOne({ where: { email } });  
         if (!user) {
             throw new Error('Usuario no encontrado');
         }
 
-        //verificar si la contraseña es correcta 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const isPasswordValid = await bcrypt.compare(hashedPassword, user.password)
-        if (isPasswordValid) {
+        // Verificar si la contraseña es correcta 
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
             throw new Error('Contraseña incorrecta');
         }
 
-        // Consultar permisos de rol
+        // Consultar los permisos del rol
         const rolePermission = await RolePermission.findAll({
             where: { rol_id: user.rol_id },
             attributes: ['permiso_id']
@@ -33,11 +32,11 @@ exports.loginUser = async (email, password) => {
 
         const permisos = rolePermission.map(rp => rp.permiso_id);
 
-        // Generar un token JWT
+        // Generar token jwt
         const token = jwt.sign(
             { id: user.id, nombre: user.nombre, email: user.email, rol_id: user.rol_id, permisos },
             SECRET_KEY,
-                {expiresIn: '1h'}
+            { expiresIn: '1h' }
         );
 
         return token;
